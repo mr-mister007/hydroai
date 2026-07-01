@@ -279,10 +279,31 @@ def cmd_run(args):
             time.sleep(1)
 
     monitor_thread = threading.Thread(target=monitor, daemon=True)
-    monitor_thread.start()
 
-    print(f"   Running: {' '.join(tool_cmd)}")
-    print(f"   Session: {session_id}")
+    print(f"   Running: {' '.join(tool_cmd)}", flush=True)
+    print(f"   Session: {session_id}", flush=True)
+
+    lock = threading.Lock()
+    line_printed = [False]
+
+    def live_display():
+        time.sleep(0.5)
+        while running[0]:
+            stats = storage.get_session_stats(session_id)
+            water = stats.get("total_water_ml", 0)
+            calls = stats.get("calls", 0)
+            out_tok = stats.get("total_output_tokens", 0)
+            bar = _water_bar(water)
+            line = f"\r   {bar}  {format_water(water)}  |  {calls} calls  |  {out_tok:,} tokens out  "
+            with lock:
+                sys.stderr.write(line)
+                sys.stderr.flush()
+                line_printed[0] = True
+            time.sleep(2)
+
+    monitor_thread.start()
+    display_thread = threading.Thread(target=live_display, daemon=True)
+    display_thread.start()
 
     proc = sp.Popen(tool_cmd, env=env)
 
@@ -293,6 +314,11 @@ def cmd_run(args):
         proc.wait()
 
     running[0] = False
+    display_thread.join(timeout=1)
+    with lock:
+        if line_printed[0]:
+            sys.stderr.write("\r" + " " * 80 + "\r")
+            sys.stderr.flush()
     time.sleep(1)
 
     for entry in read_shm(shm_path):
