@@ -283,6 +283,9 @@ def cmd_run(args):
     print(f"   Running: {' '.join(tool_cmd)}", flush=True)
     print(f"   Session: {session_id}", flush=True)
 
+    cmd_name = os.path.basename(tool_cmd[0]) if tool_cmd else ""
+    use_live_bar = cmd_name not in ("opencode",)
+
     lock = threading.Lock()
     line_printed = [False]
 
@@ -293,8 +296,7 @@ def cmd_run(args):
             water = stats.get("total_water_ml", 0)
             calls = stats.get("calls", 0)
             out_tok = stats.get("total_output_tokens", 0)
-            bar = _water_bar(water)
-            line = f"\r   {bar}  {format_water(water)}  |  {calls} calls  |  {out_tok:,} tokens out  "
+            line = f"\r   {format_water(water)}  |  {calls} calls  |  {out_tok:,} tokens out  "
             with lock:
                 sys.stderr.write(line)
                 sys.stderr.flush()
@@ -302,8 +304,11 @@ def cmd_run(args):
             time.sleep(2)
 
     monitor_thread.start()
-    display_thread = threading.Thread(target=live_display, daemon=True)
-    display_thread.start()
+    if use_live_bar:
+        display_thread = threading.Thread(target=live_display, daemon=True)
+        display_thread.start()
+    else:
+        display_thread = None
 
     proc = sp.Popen(tool_cmd, env=env)
 
@@ -314,11 +319,12 @@ def cmd_run(args):
         proc.wait()
 
     running[0] = False
-    display_thread.join(timeout=1)
-    with lock:
-        if line_printed[0]:
-            sys.stderr.write("\r" + " " * 80 + "\r")
-            sys.stderr.flush()
+    if display_thread:
+        display_thread.join(timeout=1)
+        with lock:
+            if line_printed[0]:
+                sys.stderr.write("\r" + " " * 80 + "\r")
+                sys.stderr.flush()
     time.sleep(1)
 
     for entry in read_shm(shm_path):
