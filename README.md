@@ -78,14 +78,18 @@ Requires: Python 3.10+, GCC (for compiling the LD_PRELOAD library).
 ### Track any command
 
 ```sh
-# Run a command under the hook
+# Interactive TUI session (no query — type prompts inside the tool)
+hydroai run opencode
+hydroai run claude
+
+# One-shot query
 hydroai run opencode run "explain how transformers work"
 
-# Run interactive TUI
-hydroai run opencode
-
-# Run any Python script using Anthropic/OpenAI
+# Any Python script using Anthropic/OpenAI APIs
 hydroai run python3 my_script.py
+
+# Any shell command (curl, etc.)
+hydroai run curl -s https://api.anthropic.com/v1/messages ...
 ```
 
 ### Check results
