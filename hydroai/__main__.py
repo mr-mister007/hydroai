@@ -284,7 +284,7 @@ def cmd_run(args):
     print(f"   Session: {session_id}", flush=True)
 
     cmd_name = os.path.basename(tool_cmd[0]) if tool_cmd else ""
-    use_live_bar = cmd_name not in ("opencode",)
+    use_live_bar = cmd_name not in ("opencode", "claude")
 
     lock = threading.Lock()
     line_printed = [False]
