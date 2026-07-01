@@ -129,7 +129,14 @@ Hello
 
 ### Install
 
-Add the plugin to your opencode config (`~/.config/opencode/opencode.jsonc`):
+```sh
+# One command — adds the plugin to ~/.config/opencode/opencode.jsonc
+hydroai plugin install
+
+# Restart opencode for the plugin to load
+```
+
+Or manually add to `~/.config/opencode/opencode.jsonc`:
 
 ```json
 {
@@ -138,7 +145,7 @@ Add the plugin to your opencode config (`~/.config/opencode/opencode.jsonc`):
 }
 ```
 
-The plugin reads the same SHM file created by `hydroai run`. Run opencode through hydroai for the footer to appear:
+Run opencode through hydroai for the footer to appear:
 
 ```sh
 hydroai run opencode

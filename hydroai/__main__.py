@@ -162,7 +162,41 @@ def cmd_hook(args):
     print(f"   WATERMETER_PROC_NAMES={proc_str} \\")
     print(f"   your-command-here")
     print()
-    print(f"   Or use: watermeter run <command>")
+    print(f"   Or use: hydroai run <command>")
+
+
+def cmd_plugin_install(args):
+    import json
+    from pathlib import Path
+    plugin_path = str(Path(__file__).parent / "opencode-plugin.mjs")
+    if not os.path.exists(plugin_path):
+        print(f"   Plugin file not found at {plugin_path}")
+        return
+
+    config_dir = Path(os.path.expanduser("~/.config/opencode"))
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_file = config_dir / "opencode.jsonc"
+
+    config = {}
+    if config_file.exists():
+        raw = config_file.read_text()
+        import re
+        stripped = re.sub(r"(?m)^\s*//.*$", "", raw)
+        stripped = re.sub(r"/\*.*?\*/", "", stripped, flags=re.DOTALL)
+        if stripped.strip():
+            config = json.loads(stripped)
+
+    plugins = config.get("plugin", [])
+    if plugin_path in plugins:
+        print(f"   Plugin already installed")
+        return
+
+    plugins.append(plugin_path)
+    config["plugin"] = plugins
+
+    config_file.write_text(json.dumps(config, indent=2) + "\n")
+    print(f"   Plugin installed in {config_file}")
+    print(f"   Restart opencode for changes to take effect")
 
 
 def cmd_run(args):
@@ -383,12 +417,20 @@ def main():
                        help="Command to run (use -- to separate flags)")
 
     sub.add_parser("reset", help="Reset all data")
+    p_plugin = sub.add_parser("plugin", help="Manage hydroai plugins")
+    p_plugin_sub = p_plugin.add_subparsers(dest="plugin_command", required=True)
+    p_plugin_sub.add_parser("install", help="Install the opencode plugin")
 
     args = parser.parse_args()
 
+    if args.command == "plugin":
+        commands = {"install": cmd_plugin_install}
+        commands[args.plugin_command](args)
+        return
+
     if args.command == "reset":
 
-        db_path = os.path.expanduser("~/.watermeter/watermeter.db")
+        db_path = os.path.expanduser("~/.hydroai/hydroai.db")
         try:
             os.remove(db_path)
             clear_session()
